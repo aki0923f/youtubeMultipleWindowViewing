@@ -23,24 +23,24 @@ $(function () {
         $form.append('<p class="error" style="color:red;">正しいYouTubeのURLを入力してください。</p>');
       }
     });
+  });
     
-    // ----- クリアボタン押下時 -----
-    $wraps.on('click', '.clear-single', function () {
-      const $wrap = $(this).closest('.youtube-wrap'); // 押されたボタンの親フォーム
-      const index = $('.youtube-wrap').index($wrap); // 親フォームのインデックスを取得
-      const key = `youtube_video_${index}`;
-    
-      if(index > -1) {
-        localStorage.removeItem(key); // 指定キーだけ削除
-      }
+  // ----- クリアボタン押下時 -----
+  $wraps.on('click', '.clear-single', function () {
+    const $wrap = $(this).closest('.youtube-wrap'); // 押されたボタンの親フォーム
+    const index = $('.youtube-wrap').index($wrap); // 親フォームのインデックスを取得
+    const key = `youtube_video_${index}`;
+  
+    if(index > -1) {
+      localStorage.removeItem(key); // 指定キーだけ削除
+    }
 
-      // 元のフォームに戻す
-      const formHtml = `
-        <input type="text" placeholder="ここにYouTubeURLを挿入">
-        <input type="submit" class="submit">
-      `;
-      $(this).closest('.youtube-wrap').html(formHtml);
-    });
+    // 元のフォームに戻す
+    const formHtml = `
+      <input type="text" placeholder="ここにYouTubeURLを挿入">
+      <input type="submit" class="submit">
+    `;
+    $(this).closest('.youtube-wrap').html(formHtml);
   });
 
   // ----- ローカルストレージ全消し -----
