@@ -23,6 +23,13 @@ $(function () {
         $form.append('<p class="error" style="color:red;">正しいYouTubeのURLを入力してください。</p>');
       }
     });
+
+    
+
+    // ----- ブラウザリロード -----
+    $form.on('click', '.reload', function () {
+      $(this).parent().find('iframe').attr('src', $(this).parent().find('iframe').attr('src'));
+    });
   });
     
   // ----- クリアボタン押下時 -----
@@ -61,6 +68,6 @@ function extractYouTubeID(url) {
 // --- YouTubeIDからiframeを生成する関数 ---
 function addIframeFnc(videoId) {
   const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1`;
-  const iframe = `<iframe width="560" height="315" src="${embedUrl}" frameborder="0" allowfullscreen></iframe><button type="button" class="clear-single">クリア</button>`;
+  const iframe = `<iframe width="560" height="315" src="${embedUrl}" frameborder="0" allowfullscreen></iframe><button type="button" class="clear-single">クリア</button><button type="button" class="reload">リロード</button>`;
   return iframe;
 }

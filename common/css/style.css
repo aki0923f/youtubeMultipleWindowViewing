@@ -78,4 +78,31 @@ body {
       height: 1px;
     }
   }
+  .reload {
+    appearance: none;
+    border: 0 none;
+    cursor: pointer;
+    background-color: rgba(255,255,255,0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-indent: -9999px;
+    overflow: hidden;
+    position: absolute;
+    top: 0;
+    right: 22px;
+    width: 20px;
+    height: 20px;
+    &::before {
+      background: url(../img/icon_reload.svg) 0 0 no-repeat;
+      background-size: contain;
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      translate: -50% -50%;
+      width: 14px;
+      height: 14px;
+    }
+  }
 }
