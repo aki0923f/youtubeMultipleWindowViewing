@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Multi YouTube Viewer</title>
+  <title>Multi Stream Viewer</title>
   <style>
     body {
       margin: 0;
@@ -21,7 +21,7 @@
     }
     .top-bar input {
       padding: 5px;
-      width: 300px;
+      width: 250px;
       border-radius: 4px;
       border: none;
     }
@@ -32,6 +32,12 @@
       border: none;
       border-radius: 4px;
       cursor: pointer;
+    }
+    .history-bar {
+      display: flex;
+      gap: 5px;
+      margin-left: auto;
+      flex-wrap: wrap;
     }
     .video-container {
       display: grid;
@@ -55,14 +61,18 @@
       aspect-ratio: 16 / 9;
       display: block;
     }
-    .remove-btn {
+    .video-controls {
       position: absolute;
       top: 5px;
       right: 5px;
+      display: flex;
+      gap: 5px;
+    }
+    .video-controls button {
       background: rgba(0,0,0,0.6);
       color: #fff;
       border: none;
-      border-radius: 50%;
+      border-radius: 4px;
       width: 24px;
       height: 24px;
       cursor: pointer;
@@ -74,57 +84,89 @@
   <div class="top-bar">
     <input type="text" id="urlInput" placeholder="YouTube URLを入力">
     <button onclick="addVideo()">＋</button>
-    <button onclick="clearAll()">全削除</button>
+    <div class="history-bar" id="historyBar"></div>
   </div>
   <div class="video-container" id="videoContainer"></div>
 
   <script>
     let videoList = [];
+    let removedHistory = [];
 
     function saveState() {
       localStorage.setItem('videoList', JSON.stringify(videoList));
+      localStorage.setItem('removedHistory', JSON.stringify(removedHistory));
     }
 
     function loadState() {
       const saved = localStorage.getItem('videoList');
-      if (saved) {
-        videoList = JSON.parse(saved);
-        updateDisplay();
-      }
+      const savedHistory = localStorage.getItem('removedHistory');
+      if (saved) videoList = JSON.parse(saved);
+      if (savedHistory) removedHistory = JSON.parse(savedHistory);
+      updateDisplay();
+      updateHistory();
     }
 
     function getEmbedURL(url) {
       try {
         const videoId = new URL(url).searchParams.get("v") || url.split("/").pop();
-        return `https://www.youtube.com/embed/${videoId}?autoplay=1`;
+        return `https://www.youtube.com/embed/${videoId}?autoplay=1&enablejsapi=1`;
       } catch {
         return null;
       }
     }
 
     function addVideo() {
-      const url = document.getElementById("urlInput").value.trim();
+      const input = document.getElementById("urlInput");
+      const url = input.value.trim();
       const embed = getEmbedURL(url);
       if (embed) {
-        videoList.push({ url, embed });
-        document.getElementById("urlInput").value = "";
-        updateDisplay();
+        videoList.push({ url });
+        input.value = "";
         saveState();
+        updateDisplay();
       } else {
         alert("有効なYouTube URLを入力してください");
       }
     }
 
     function removeVideo(index) {
-      videoList.splice(index, 1);
-      updateDisplay();
+      const removed = videoList.splice(index, 1)[0];
+      fetchTitle(removed.url).then(title => {
+        removed.title = title;
+        removedHistory.unshift(removed);
+        if (removedHistory.length > 5) removedHistory.pop();
+        saveState();
+        updateDisplay();
+        updateHistory();
+      });
+    }
+
+    function reloadVideo(index) {
+      const container = document.getElementById(`video-${index}`);
+      const frame = container.querySelector("iframe");
+      const url = getEmbedURL(videoList[index].url);
+      frame.src = url;
+    }
+
+    function restoreVideo(url) {
+      videoList.push({ url });
+      removedHistory = removedHistory.filter(item => item.url !== url);
       saveState();
+      updateDisplay();
+      updateHistory();
     }
 
     function clearAll() {
-      videoList = [];
-      updateDisplay();
-      saveState();
+      const titlesPromises = videoList.map(item =>
+        fetchTitle(item.url).then(title => ({ ...item, title })));
+        
+      Promise.all(titlesPromises).then(results => {
+        removedHistory = [...results, ...removedHistory].slice(0, 5);
+        videoList = [];
+        saveState();
+        updateDisplay();
+        updateHistory();
+      });
     }
 
     function updateDisplay() {
@@ -150,18 +192,72 @@
       container.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
 
       videoList.forEach((video, i) => {
+        const embed = getEmbedURL(video.url);
         const wrapper = document.createElement("div");
         wrapper.className = "video-wrapper";
+        wrapper.id = `video-${i}`;
+
         const iframe = document.createElement("iframe");
-        iframe.src = video.embed;
-        const btn = document.createElement("button");
-        btn.textContent = "−";
-        btn.className = "remove-btn";
-        btn.onclick = () => removeVideo(i);
+        iframe.src = embed;
+        iframe.allow = "autoplay";
+        iframe.id = `iframe-${i}`;
+
+        const controls = document.createElement("div");
+        controls.className = "video-controls";
+
+        const removeBtn = document.createElement("button");
+        removeBtn.textContent = "−";
+        removeBtn.onclick = () => removeVideo(i);
+
+        const reloadBtn = document.createElement("button");
+        reloadBtn.textContent = "⟳";
+        reloadBtn.onclick = () => reloadVideo(i);
+
+        controls.appendChild(reloadBtn);
+        controls.appendChild(removeBtn);
+
         wrapper.appendChild(iframe);
-        wrapper.appendChild(btn);
+        wrapper.appendChild(controls);
         container.appendChild(wrapper);
       });
+    }
+
+    function updateHistory() {
+      const historyBar = document.getElementById("historyBar");
+      historyBar.innerHTML = "";
+      removedHistory.forEach(item => {
+        const btnWrapper = document.createElement("div");
+        
+        const btn = document.createElement("button");
+        let label = item.title ? item.title.slice(0, 20) : "復元";
+        btn.textContent = label;
+        btn.title = item.url;
+        btn.onclick = () => restoreVideo(item.url);
+        btnWrapper.appendChild(btn);
+
+        const removeHistoryBtn = document.createElement("button");
+        removeHistoryBtn.textContent = "×";
+        removeHistoryBtn.onclick = () => removeHistoryItem(item.url);
+        btnWrapper.appendChild(removeHistoryBtn);
+
+        historyBar.appendChild(btnWrapper);
+      });
+    }
+
+    function removeHistoryItem(url) {
+      removedHistory = removedHistory.filter(item => item.url !== url);
+      saveState();
+      updateHistory();
+    }
+
+    async function fetchTitle(url) {
+      try {
+        const res = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(url)}&format=json`);
+        const data = await res.json();
+        return data.title || "不明なタイトル";
+      } catch {
+        return "不明なタイトル";
+      }
     }
 
     window.onload = loadState;
