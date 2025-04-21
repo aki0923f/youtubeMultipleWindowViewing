@@ -394,10 +394,20 @@ function setupTopBarHover() {
 
   handle.addEventListener("mouseenter", () => {
     showTopBar();
-    clearTimeout(hideTimer); // タイマーをリセット
+    clearTimeout(hideTimer);
   });
 
   handle.addEventListener("mouseleave", () => {
+    handleMouseLeave();
+  });
+
+  // トップバー自体にもマウスホバー対応
+  topBar.addEventListener("mouseenter", () => {
+    showTopBar();
+    clearTimeout(hideTimer);
+  });
+
+  topBar.addEventListener("mouseleave", () => {
     handleMouseLeave();
   });
 }
