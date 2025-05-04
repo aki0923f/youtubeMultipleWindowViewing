@@ -55,6 +55,26 @@ $(function () {
     localStorage.clear();
     location.reload();
   });
+
+  // ----- 並び替え機能 -----
+  $('.youtube-list').sortable({
+    handle: '.drag-handle',
+    update: function () {
+      // 新しい順番でローカルストレージを更新
+      $('.youtube-list li').each(function (newIndex) {
+        const iframe = $(this).find('.youtube-wrap iframe');
+        if (iframe.length) {
+          const src = iframe.attr('src');
+          const videoId = extractYouTubeID(src);
+          if (videoId) {
+            localStorage.setItem(`youtube_video_${newIndex}`, videoId);
+          }
+        } else {
+          localStorage.removeItem(`youtube_video_${newIndex}`);
+        }
+      });
+    }
+  });
 });
 
 
@@ -68,6 +88,6 @@ function extractYouTubeID(url) {
 // --- YouTubeIDからiframeを生成する関数 ---
 function addIframeFnc(videoId) {
   const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1`;
-  const iframe = `<iframe width="560" height="315" src="${embedUrl}" frameborder="0" allowfullscreen></iframe><button type="button" class="clear-single">クリア</button><button type="button" class="reload">リロード</button>`;
+  const iframe = `<iframe width="560" height="315" src="${embedUrl}" frameborder="0" allowfullscreen></iframe><button type="button" class="clear-single">クリア</button><button type="button" class="reload">リロード</button><div class="drag-handle">並べ替え</div>`;
   return iframe;
 }
